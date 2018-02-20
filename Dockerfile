@@ -1,5 +1,6 @@
 # Partially copied from https://github.com/ebidel/try-puppeteer/tree/4b68714dee5492b77a0fd6711d3abaf8bc72d995/backend
 FROM node:8-slim
+ENV DEBIAN_FRONTEND noninteractive
 
 # Install latest chrome dev package.
 # Note: this installs the necessary libs to make the bundled version of
@@ -7,6 +8,8 @@ FROM node:8-slim
 
 # See https://crbug.com/795759
 RUN apt-get update && apt-get install -yq libgconf-2-4
+RUN sed -i "s/jessie main/jessie main contrib non-free/" /etc/apt/sources.list
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections
 
 RUN apt-get update && apt-get install -y wget --no-install-recommends \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -14,13 +17,15 @@ RUN apt-get update && apt-get install -y wget --no-install-recommends \
     && apt-get update \
     && apt-get install -y google-chrome-unstable \
       --no-install-recommends \
+    && apt-get install -y --no-install-recommends fontconfig ttf-mscorefonts-installer \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get purge --auto-remove -y curl \
     && rm -rf /src/*.deb
 
 COPY . /app/
-#COPY local.conf /etc/fonts/local.conf
 WORKDIR app
+
+RUN fc-cache -f -v
 
 # Install deps for server.
 # Cache bust so we always get the latest version of puppeteer when
