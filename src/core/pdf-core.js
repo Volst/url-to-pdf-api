@@ -2,9 +2,11 @@ const puppeteer = require('puppeteer');
 const _ = require('lodash');
 const config = require('../config');
 const logger = require('../util/logger')(__filename);
+const genericPool = require('generic-pool');
 
 // Initialize a Chrome instance
 let browser;
+let myPool;
 
 (async () => {
   browser = await puppeteer.launch({
@@ -13,12 +15,25 @@ let browser;
     args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox'],
     sloMo: config.DEBUG_MODE ? 250 : undefined,
   });
+
+  const poolFactory = {
+    create() {
+      logger.info('Adding new page to pool');
+      return browser.newPage();
+    },
+    destroy(client) {
+      logger.info('Destroying page from pool');
+      return client.close();
+    },
+  };
+  const poolOpts = {
+    max: 15,
+    min: 4,
+  };
+  myPool = genericPool.createPool(poolFactory, poolOpts);
 })();
 
 process.on('exit', () => browser && browser.close()); // Safe-guard to kill the Chrome instance
-
-// Initialize the Pool array
-const PagePool = [];
 
 async function render(_opts = {}) {
   const opts = _.merge({
@@ -49,21 +64,15 @@ async function render(_opts = {}) {
 
   logOpts(opts);
 
-  let ppage = poolGetConnection();
-  if (!ppage) {
-    logger.info('Using new page');
-    ppage = await poolAddConnection();
-  } else {
-    logger.info('Attaching to existing page');
-  }
-  const { page } = ppage;
+  const page = await myPool.acquire();
 
   page.on('console', (...args) => logger.info('PAGE LOG:', ...args));
 
   page.on('error', (err) => {
     logger.error(`Error event emitted: ${err}`);
     logger.error(err.stack);
-    browser.close();
+    // Page has crashed so we do not trust this resource anymore.
+    myPool.destroy();
   });
 
   let data;
@@ -113,10 +122,11 @@ async function render(_opts = {}) {
   } catch (err) {
     logger.error(`Error when rendering page: ${err}`);
     logger.error(err.stack);
+    myPool.release(page);
     throw err;
   }
 
-  poolToggleAvailability(ppage.id);
+  myPool.release(page);
   return data;
 }
 
@@ -157,40 +167,6 @@ function logOpts(opts) {
   }
 
   logger.info(`Rendering with opts: ${JSON.stringify(supressedOpts, null, 2)}`);
-}
-
-
-function poolGetConnection() {
-  const page = PagePool.find(p => p.available === true);
-  if (page) {
-    page.available = false;
-    return page;
-  }
-  return null;
-}
-
-async function poolAddConnection() {
-  if (PagePool.length + 1 > config.MAX_POOL_SIZE) {
-    throw new Error(`Surpassing pool limit of ${config.MAX_POOL_SIZE} concurrent pages`);
-  }
-
-  const newPage = await browser.newPage();
-
-  const ppage = {
-    id: PagePool.length + 1,
-    available: false,
-    page: newPage,
-  };
-  PagePool.push(ppage);
-
-  return ppage;
-}
-
-function poolToggleAvailability(id) {
-  const page = PagePool.find(p => p.id === id);
-  if (page) {
-    page.available = !page.available;
-  }
 }
 
 module.exports = {
