@@ -4,36 +4,29 @@ const config = require('../config');
 const logger = require('../util/logger')(__filename);
 const genericPool = require('generic-pool');
 
-// Initialize a Chrome instance
-let browser;
-let myPool;
+// The puppeteer launch causes many events to be emitted.
+process.setMaxListeners(0);
 
-(async () => {
-  browser = await puppeteer.launch({
-    headless: !config.DEBUG_MODE,
-    ignoreHTTPSErrors: false,
-    args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox'],
-    sloMo: config.DEBUG_MODE ? 250 : undefined,
-  });
-
-  const poolFactory = {
-    create() {
-      logger.info('Adding new page to pool');
-      return browser.newPage();
-    },
-    destroy(client) {
-      logger.info('Destroying page from pool');
-      return client.close();
-    },
-  };
-  const poolOpts = {
-    max: 15,
-    min: 4,
-  };
-  myPool = genericPool.createPool(poolFactory, poolOpts);
-})();
-
-process.on('exit', () => browser && browser.close()); // Safe-guard to kill the Chrome instance
+const poolFactory = {
+  create() {
+    logger.info('Adding new browser to pool');
+    return puppeteer.launch({
+      headless: !config.DEBUG_MODE,
+      ignoreHTTPSErrors: false,
+      args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox'],
+      sloMo: config.DEBUG_MODE ? 250 : undefined,
+    });
+  },
+  destroy(client) {
+    logger.info('Destroying browser from pool');
+    return client.close();
+  },
+};
+const poolOpts = {
+  max: 15,
+  min: 4,
+};
+const myPool = genericPool.createPool(poolFactory, poolOpts);
 
 async function render(_opts = {}) {
   const opts = _.merge({
@@ -64,7 +57,8 @@ async function render(_opts = {}) {
 
   logOpts(opts);
 
-  const page = await myPool.acquire();
+  const browser = await myPool.acquire();
+  const page = await browser.newPage();
 
   page.on('console', (...args) => logger.info('PAGE LOG:', ...args));
 
@@ -126,7 +120,7 @@ async function render(_opts = {}) {
     throw err;
   }
 
-  myPool.release(page);
+  myPool.release(browser);
   return data;
 }
 
