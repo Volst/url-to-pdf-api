@@ -108,7 +108,7 @@ async function render(_opts = {}) {
   } catch (err) {
     logger.error(`Error when rendering page: ${err}`);
     logger.error(err.stack);
-    myPool.release(page);
+    myPool.release(browser);
     throw err;
   }
 
