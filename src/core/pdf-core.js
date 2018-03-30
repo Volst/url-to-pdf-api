@@ -71,38 +71,30 @@ async function render(_opts = {}) {
 
   let data;
   try {
-    logger.info('Set browser viewport..');
     await page.setViewport(opts.viewport);
     if (opts.emulateScreenMedia) {
-      logger.info('Emulate @media screen..');
       await page.emulateMedia('screen');
     }
 
-    logger.info('Setting cookies..');
     opts.cookies.map(async (cookie) => {
       await page.setCookie(cookie);
     });
 
     if (opts.html) {
-      logger.info('Set HTML ..');
       // https://github.com/GoogleChrome/puppeteer/issues/728
       await page.goto(`data:text/html,${opts.html}`, opts.goto);
     } else {
-      logger.info(`Goto url ${opts.url} ..`);
       await page.goto(opts.url, opts.goto);
     }
 
     if (_.isNumber(opts.waitFor) || _.isString(opts.waitFor)) {
-      logger.info(`Wait for ${opts.waitFor} ..`);
       await page.waitFor(opts.waitFor);
     }
 
     if (opts.scrollPage) {
-      logger.info('Scroll page ..');
       await scrollPage(page);
     }
 
-    logger.info('Render PDF ..');
     if (config.DEBUG_MODE) {
       const msg = `\n\n---------------------------------\n
         Chrome does not support PDF rendering in "headed" mode.
