@@ -65,8 +65,6 @@ async function render(_opts = {}) {
   page.on('error', (err) => {
     logger.error(`Error event emitted: ${err}`);
     logger.error(err.stack);
-    // Page has crashed so we do not trust this resource anymore.
-    myPool.destroy();
   });
 
   let data;
