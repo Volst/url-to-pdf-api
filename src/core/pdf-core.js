@@ -13,7 +13,8 @@ const poolFactory = {
     return puppeteer.launch({
       headless: !config.DEBUG_MODE,
       ignoreHTTPSErrors: false,
-      args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox'],
+      // --disable-dev-shm-usage is necessary for Docker deployments; see https://github.com/GoogleChrome/puppeteer/issues/623#issuecomment-358258138
+      args: ['--disable-gpu', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
       sloMo: config.DEBUG_MODE ? 250 : undefined,
     });
   },
@@ -23,7 +24,7 @@ const poolFactory = {
   },
 };
 const poolOpts = {
-  max: 15,
+  max: 8,
   min: 4,
 };
 const myPool = genericPool.createPool(poolFactory, poolOpts);
@@ -106,10 +107,12 @@ async function render(_opts = {}) {
   } catch (err) {
     logger.error(`Error when rendering page: ${err}`);
     logger.error(err.stack);
+    page.close();
     myPool.release(browser);
     throw err;
   }
 
+  page.close();
   myPool.release(browser);
   return data;
 }
