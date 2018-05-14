@@ -8,6 +8,7 @@
 * Basic deploy scripts for [Zeit Now](https://zeit.co/)
 * Runs the latest Puppeteer version
 * Way faster since it uses pools (it runs 4 Chrome browsers and can scale to 8 browsers automatically)
+* Actually maintained
 
 ---
 
