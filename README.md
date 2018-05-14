@@ -1,10 +1,15 @@
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/alvarcarto/url-to-pdf-api)
-
-[![Build Status](https://travis-ci.org/alvarcarto/url-to-pdf-api.svg?branch=master)](https://travis-ci.org/alvarcarto/url-to-pdf-api)
-
 # URL to PDF Microservice
 
 > Web page PDF rendering done right. Microservice for rendering receipts, invoices, or any content. Packaged to an easy API.
+
+**This is a fork of [alvarcarto/url-to-pdf-api](https://github.com/alvarcarto/url-to-pdf-api/)**, with the following differences;
+
+* Has a `Dockerfile` for easy Docker deployment (with correct default fonts installed!)
+* Basic deploy scripts for [Zeit Now](https://zeit.co/)
+* Runs the latest Puppeteer version
+* Way faster since it uses pools (it runs 4 Chrome browsers and can scale to 8 browsers automatically)
+
+---
 
 ![Logo](docs/logo.png)
 
