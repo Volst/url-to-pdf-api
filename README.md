@@ -10,6 +10,8 @@
 * Way faster since it uses pools (it runs 4 Chrome browsers and can scale to 8 browsers automatically)
 * Actually maintained
 
+[![Deploy to now](https://deploy.now.sh/static/button.svg)](https://deploy.now.sh/?repo=https://github.com/Volst/url-to-pdf-api&env=NODE_ENV&env=ALLOW_HTTP&env=DEBUG_MODE&env=API_TOKENS&env=LOG_LEVEL)
+
 ---
 
 ![Logo](docs/logo.png)
